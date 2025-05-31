@@ -1,0 +1,40 @@
+# Configuration file for Cloudflare DDNS script
+# This file contains settings for the Cloudflare API, zones, and optional features.
+# Make sure to keep this file secure, especially if it contains sensitive information like API tokens.
+
+# --- Cloudflare API Configuration ---
+# Option 1: Set an environment variable (recommended for API token)
+# If you set CLOUDFLARE_API_TOKEN_ENV_VAR to a variable name (e.g., "CF_TOKEN"),
+# the script will try to read the token from that environment variable.
+CLOUDFLARE_API_TOKEN_ENV_VAR = "CF_API_TOKEN" # Example, change if you use a different env var name
+
+# Option 2: Directly set the API token here (less secure if config.py is exposed)
+# This will be used if the environment variable above is not set or CLOUDFLARE_API_TOKEN_ENV_VAR is None.
+CLOUDFLARE_API_TOKEN = "YOUR_CLOUDFLARE_API_TOKEN_HERE"
+
+# --- Zone Configuration ---
+# Add your domains and their corresponding Cloudflare Zone IDs.
+# You can find the Zone ID on the "Overview" page for your domain in the Cloudflare dashboard.
+ZONES = {
+    "example.com": "YOUR_ZONE_ID_FOR_EXAMPLE_COM",
+    # "sub.example.org": "ANOTHER_ZONE_ID",
+}
+
+# --- File Paths ---
+# Relative paths are generally recommended for portability.
+# These will be relative to where the script is run.
+IP_FILE = "cloudflare_ddns_currentIP.txt"
+LOG_FILE = "cloudflare_ddns.log"
+
+# --- Optional Features ---
+
+# Path to your custom PHP script for notifications.
+# Set to None or an empty string to disable PHP notifications.
+PHP_SCRIPT_PATH = None # Example: "/var/www/html/notify.php"
+
+# Enable system checks (Linux specific).
+# These are included in notifications if PHP_SCRIPT_PATH is set.
+# Set to False if you are not on Linux or don't want these checks.
+ENABLE_APACHE_STATUS_CHECK = False # Requires systemctl
+ENABLE_SYSTEM_UPDATE_CHECK = False # Requires apt
+ENABLE_DISCORD_NOTIFICATIONS = False # Set to true to enable Discord notifications
