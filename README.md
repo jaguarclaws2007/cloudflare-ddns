@@ -74,7 +74,7 @@ sudo python3 cloudflare_ddns.py
 Or, if you made it executable:
 
 ```bash
-sudp ./cloudflare_ddns.py
+sudo ./cloudflare_ddns.py
 ```
 
 **Automate with Cron (Linux/macOS):**
