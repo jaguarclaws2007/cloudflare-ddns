@@ -26,15 +26,30 @@ ZONES = {
 IP_FILE = "cloudflare_ddns_currentIP.txt"
 LOG_FILE = "cloudflare_ddns.log"
 
-# --- Optional Features ---
+# --- Optional Features (Discord Notifications) ---
+# Enable Discord Notifications
+ENABLE_DISCORD_NOTIFICATIONS = False # Set to true to enable Discord notifications
+DISCORD_SCRIPT_LANGAUGE = None # Set to php or py
 
-# Path to your custom PHP script for notifications.
-# Set to None or an empty string to disable PHP notifications.
-PHP_SCRIPT_PATH = None # Example: "/var/www/html/notify.php"
+# Discord Webhook URL for notifications. 
+# !!! IMPORTANT: If you are using the PHP script, set your webhook URL in the PHP script (or .htaccess for env) instead of here.
+# If you are using the Python script, set it here or in the environment variable.
+# Option 1: Set an environment variable (recommended for API token)
+# If you set DISCORD_API_WEBHOOK_URL_ENV_VAR to a variable name (e.g., "DISCORD_API"),
+# the script will try to read the token from that environment variable.
+DISCORD_API_WEBHOOK_URL_ENV_VAR = "DISCORD_WEBHOOK_URL_PYTHON" # Environment variable name for the webhook URL
+
+# Option 2: Directly set the API token here (less secure if config.py is exposed)
+# This will be used if the environment variable above is not set or DISCORD_API_WEBHOOK_URL_ENV_VAR is None.
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL" # Example, change to your actual webhook URL
+
+# Path to your custom script for notifications.
+DISCORD_SCRIPT_PATH = None # Example: "/var/www/html/notify-ip-change.php" or "/var/www/html/send_ip_change_notification.py"
 
 # Enable system checks (Linux specific).
-# These are included in notifications if PHP_SCRIPT_PATH is set.
+# These are included in notifications if DISCORD_SCRIPT_PATH is set.
 # Set to False if you are not on Linux or don't want these checks.
 ENABLE_APACHE_STATUS_CHECK = False # Requires systemctl
 ENABLE_SYSTEM_UPDATE_CHECK = False # Requires apt
-ENABLE_DISCORD_NOTIFICATIONS = False # Set to true to enable Discord notifications
+
+

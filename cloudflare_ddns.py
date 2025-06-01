@@ -36,12 +36,26 @@ if not ZONES:
 
 IP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), getattr(config, 'IP_FILE', 'cloudflare_ddns_currentIP.txt'))
 LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), getattr(config, 'LOG_FILE', 'cloudflare_ddns.log'))
-PHP_SCRIPT_PATH = getattr(config, 'PHP_SCRIPT_PATH', None)
+
+# GET Notification Configuration
 ENABLE_APACHE_STATUS_CHECK = getattr(config, 'ENABLE_APACHE_STATUS_CHECK', False)
 ENABLE_SYSTEM_UPDATE_CHECK = getattr(config, 'ENABLE_SYSTEM_UPDATE_CHECK', False)
-ENABLE_DISCORD_NOTIFICATIONS = getattr(config, 'ENABLE_DISCORD_NOTIFICATIONS', False)
 
-# IMPORTANT: Keep your API token secure
+ENABLE_DISCORD_NOTIFICATIONS = getattr(config, 'ENABLE_DISCORD_NOTIFICATIONS', False)
+if not ENABLE_DISCORD_NOTIFICATIONS:
+    print("CRITICAL: Please define this in config.py")
+    exit(1)
+
+DISCORD_SCRIPT_LANGAUGE = getattr(config, 'DISCORD_SCRIPT_LANGAUGE', None)
+if DISCORD_SCRIPT_LANGAUGE not in ['php', 'py'] and ENABLE_DISCORD_NOTIFICATIONS == True:
+    print("CRITICAL: DISCORD_SCRIPT_LANGAUGE must be set to 'php' or 'py' in config.py. Or turn off ENABLE_DISCORD_NOTIFICATIONS.")
+    exit(1)
+
+DISCORD_SCRIPT_PATH = getattr(config, 'DISCORD_SCRIPT_PATH', None)
+if not DISCORD_SCRIPT_PATH and ENABLE_DISCORD_NOTIFICATIONS == True:
+    print("CRITICAL: DISCORD_SCRIPT_PATH must be set in config.py if ENABLE_DISCORD_NOTIFICATIONS is True.")
+    exit(1)
+
 
 
 def setup_logging():
@@ -251,7 +265,7 @@ def main():
         elif records_in_zone_to_update == 0 and all_a_records: # All records were already up-to-date
              domain_statuses_messages.append(f"Zone '{zone_name}': All 'A' records already up-to-date.")
 
-    if PHP_SCRIPT_PATH:
+    if ENABLE_DISCORD_NOTIFICATIONS:
         if ENABLE_APACHE_STATUS_CHECK:
             apache_status = check_apache_status()
         if ENABLE_SYSTEM_UPDATE_CHECK:
@@ -261,29 +275,58 @@ def main():
     if domain_statuses_messages: # Only send if there are messages (updates, errors, or zone info)
         domain_status_report = "\n".join(domain_statuses_messages)
         logging.info("Sending notification via PHP script...")
-        try:
-            if ENABLE_DISCORD_NOTIFICATIONS:
-                php_process = subprocess.run(
-                    ['php', PHP_SCRIPT_PATH, current_ip, apache_status, update_status, system_time, domain_status_report],
-                    capture_output=True, text=True, check=True, timeout=30 # Added timeout and check
-                )
-                logging.info(f"PHP script executed successfully. Output: {php_process.stdout.strip()}")
+        if ENABLE_DISCORD_NOTIFICATIONS:
+            if DISCORD_SCRIPT_LANGAUGE == 'php':
+                try:
+                    php_process = subprocess.run(
+                        ['php', DISCORD_SCRIPT_PATH, current_ip, apache_status, update_status, system_time, domain_status_report],
+                        capture_output=True, text=True, check=True, timeout=30 # Added timeout and check
+                    )
+                    logging.info(f"PHP script executed successfully. Output: {php_process.stdout.strip()}")
+
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"PHP script execution failed. Return code: {e.returncode}")
+                    logging.error(f"PHP script stdout: {e.stdout.strip()}")
+                    logging.error(f"PHP script stderr: {e.stderr.strip()}")
+                    overall_script_success = False # Notification failure is a script failure
+                except subprocess.TimeoutExpired:
+                    logging.error(f"PHP script timed out after 30 seconds.")
+                    overall_script_success = False
+                except FileNotFoundError:
+                    logging.error(f"PHP script not found at {DISCORD_SCRIPT_PATH}. Please check the path.")
+                    overall_script_success = False
+                except Exception as e:
+                    logging.error(f"An unexpected error occurred while running PHP script: {e}")
+                    overall_script_success = False
+            elif DISCORD_SCRIPT_LANGAUGE == 'py':
+                DISCORD_WEBHOOK_URL = ""
+                if hasattr(config, 'DISCORD_API_WEBHOOK_URL_ENV_VAR') and config.DISCORD_API_WEBHOOK_URL_ENV_VAR:
+                    DISCORD_WEBHOOK_URL = os.getenv(config.DISCORD_API_WEBHOOK_URL_ENV_VAR)
+                if not DISCORD_WEBHOOK_URL and hasattr(config, 'CLOUDFLARE_API_TOKEN'):
+                    DISCORD_WEBHOOK_URL = config.DISCORD_WEBHOOK_URL
+
+                if not DISCORD_WEBHOOK_URL:
+                    print("CRITICAL: Discord API Token not configured.")
+                    print("Please set it in config.py or via the environment variable specified in config.py.")
+                    exit(1)
+                    
+                try:
+                    python_process = subprocess.run(
+                        ['python3', DISCORD_SCRIPT_PATH, current_ip, apache_status, update_status, system_time, domain_status_report, DISCORD_WEBHOOK_URL],
+                        capture_output=True, text=True, check=True, timeout=30 # Added timeout and check
+                    )
+                    logging.info(f"Python script executed successfully. Output: {python_process.stdout.strip()}")
+                    
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"Python script execution failed. Return code: {e.returncode}")
+                    logging.error(f"Python script stdout: {e.stdout.strip()}")
+                    logging.error(f"Python script stderr: {e.stderr.strip()}")
+                    overall_script_success = False
             else:
-                logging.info("PHP script notifications are disabled (ENABLE_DISCORD_NOTIFICATIONS is False).")
-        except subprocess.CalledProcessError as e:
-            logging.error(f"PHP script execution failed. Return code: {e.returncode}")
-            logging.error(f"PHP script stdout: {e.stdout.strip()}")
-            logging.error(f"PHP script stderr: {e.stderr.strip()}")
-            overall_script_success = False # Notification failure is a script failure
-        except subprocess.TimeoutExpired:
-            logging.error(f"PHP script timed out after 30 seconds.")
-            overall_script_success = False
-        except FileNotFoundError:
-            logging.error(f"PHP script not found at {PHP_SCRIPT_PATH}")
-            overall_script_success = False
-        except Exception as e:
-            logging.error(f"An unexpected error occurred while running PHP script: {e}")
-            overall_script_success = False
+                logging.error(f"Invalid DISCORD_SCRIPT_LANGAUGE: {DISCORD_SCRIPT_LANGAUGE}. Must be 'php' or 'py'.")
+        else:
+            logging.error(f"Discord notifications are not enabled.")
+    
     else:
         # This case means IP changed, but no records needed update AND no zones had errors during fetch.
         # (e.g. all records in all zones were already correct, or no 'A' records in any zones)
