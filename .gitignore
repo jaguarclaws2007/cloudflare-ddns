@@ -198,3 +198,5 @@ cython_debug/
 #  These files are used to configure various tools and environments.
 #  They are often user-specific and should not be shared.
 config.py
+cloudflare_ddns.log
+cloudflare_ddns_currentIP.txt
