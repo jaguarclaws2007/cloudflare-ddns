@@ -117,4 +117,4 @@ Contributions are welcome\! Please feel free to submit a pull request or open an
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/jaguarclaws2007/cloudflare-ddns/blob/main/LICENSE) file for details.
