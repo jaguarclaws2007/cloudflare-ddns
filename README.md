@@ -24,8 +24,8 @@ Keep your Cloudflare DNS records automatically updated with your dynamic IP addr
 
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/yourusername/your-repo-name.git](https://github.com/yourusername/your-repo-name.git)
-    cd your-repo-name
+    git clone https://github.com/jaguarclaws2007/cloudflare-ddns.git
+    cd cloudflare-ddns
     ```
 
 2.  **Install Dependencies:**
